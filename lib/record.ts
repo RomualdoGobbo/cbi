@@ -64,7 +64,7 @@ export module CBI{
                     }
 
                     //questo si verifica se il primo record non è un tipo_record
-                    assert(currentDsp instanceof Disposal, 'Wrong file format - first record did not have correct tipo_record');
+                    assert(currentDsp instanceof Disposal, 'Wrong file format - first record did not have correct tipo_record ' + currentDsp);
 
                     currentDsp.appendRecord(rec);
 
@@ -112,8 +112,14 @@ export module CBI{
 
             stream.on('error', (err: Error)=> {onready( err, null); } );
             stream.on('end', ()=>{ onready(null, new Flow(records, flowtype)) });
-        }
+        };
 
+        /**
+        * Convenience method to create a file from an instance
+        *
+        * @param filepath path to a cbi file
+        * 
+        */
 
         public toFile(filepath: string, done: (err: Error)=>void){
 
@@ -212,7 +218,7 @@ export module CBI{
                 break;
 
                 default :
-                    throw new Error('Invalid record length');
+                    throw new Error('Invalid record length ' + recordType.length + ' - ' + recordType);
                 break;
             }
 
@@ -224,8 +230,8 @@ export module CBI{
 
             //check if record type exists
 
-            if(this.code === '51')
-                console.log('aaaa',flowStruct[this.code]);
+            // if(this.code === '51')
+            //     console.log('aaaa',flowStruct[this.code]);
 
             this.recordStruct  = flowStruct[this.code];
             if( this.recordStruct === undefined )

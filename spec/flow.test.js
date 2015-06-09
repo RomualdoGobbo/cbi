@@ -10,26 +10,29 @@ var Flow = require('../lib/record').CBI.Flow;
 //var AssertionError = require('assertion-error');
 var path = require('path');
 var fs = require('fs');
-var testFileR = path.resolve(__dirname, 'MAV.txt');
-var testFileW = path.resolve(__dirname, 'MAV2.txt');
+var testFileMavR = path.resolve(__dirname, 'MAV.txt');
+var testFileMavW = path.resolve(__dirname, 'MAV2.txt');
+
+var testFileBonR = path.resolve(__dirname, 'BONIFICI.txt');
+var testFileBonW = path.resolve(__dirname, 'BONIFICI2.txt');
 //var jsdiff = require('diff');
 
 describe('The flow class', function(){
 
-    it('is instantiable from a CBI file', function(done){
+    xit('is instantiable from a CBI file with a MAV', function(done){
 
-        Flow.fromFile(testFileR, 'MAV', function(err, flow){
+        Flow.fromFile(testFileMavR, 'MAV', function(err, flow){
 
             expect(err).to.be.null; /*jslint ignore:line*/
 
             expect(flow).to.be.instanceof(Flow);
 
-            flow.toFile(testFileW, function(err){
+            flow.toFile(testFileMavW, function(err){
 
-                   expect(err).to.be.null;
+                   expect(err).to.be.null; /*jslint ignore:line*/
 
-                   var before = fs.readFileSync(testFileR).toString();
-                   var after = fs.readFileSync(testFileW).toString();
+                   var before = fs.readFileSync(testFileMavR).toString();
+                   var after = fs.readFileSync(testFileMavW).toString();
 
                    expect(after).to.equal(before);
                    done();
@@ -37,4 +40,26 @@ describe('The flow class', function(){
 
         });
     });
+
+    it('is instantiable from a CBI file with a BONIFICO', function(done){
+
+      Flow.fromFile(testFileBonR, 'BONIFICI', function(err, flow){
+
+          expect(err).to.be.null; /*jslint ignore:line*/
+
+          expect(flow).to.be.instanceof(Flow);
+
+          flow.toFile(testFileBonW, function(err){
+
+                 expect(err).to.be.null; /*jslint ignore:line*/
+
+                 var before = fs.readFileSync(testFileBonR).toString();
+                 var after = fs.readFileSync(testFileBonW).toString();
+
+                 expect(after).to.equal(before);
+                 done();
+          });
+
+      });
+  });
 });

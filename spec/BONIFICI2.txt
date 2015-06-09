@@ -1,0 +1,23 @@
+ IMT123405428090615DEMOMAV                                                                                       E 00000
+ 140000001            301209070000000000010000-0542811101000000123456                      T12344                      E
+ 200000001Condominio tal dei tali Via della Pace, 7                                                                     
+ 300000001Rossi Carlo                                                                                                   
+ 400000001Via Col Vento, 7              90111Milano MI                                                                  
+ 500000001Mensile Rata 1 2010015                                                                                        
+ 5100000010000000000                                                      000000000000                                  
+ 700000001                                                                                                              
+ 140000002            301209070000000000020000-0542811101000000123456                      T12344                      E
+ 200000002Condominio tal dei tali Via della Pace, 8                                                                     
+ 300000002Verdi Mario                                                                                                   
+ 400000002Via Garibaldi, 8              90112Firenze Fi                                                                 
+ 500000002Mensile Rata 1 2010015                                                                                        
+ 5100000020000000000                                                      000000000000                                  
+ 700000002                                                                                                              
+ 140000003            301209070000000000030000-0542811101000000123456                      T12344                      E
+ 200000003Condominio tal dei tali Via della Pace, 9                                                                     
+ 300000003Bianchi Alberto                                                                                               
+ 400000003Via Frosinone, 11             90113Torino To                                                                  
+ 500000003Mensile Rata 1 2010015                                                                                        
+ 5100000030000000000                                                      000000000000                                  
+ 700000003                                                                                                              
+ EFT123405428090615DEMOMAV                   00000030000000000600000000000000000000000023                        E000000
