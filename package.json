@@ -31,6 +31,7 @@
   "dependencies": {
     "byline": "^4.2.1",
     "lazy.js": "^0.4.0",
+    "ramda": "^0.15.0",
     "underscore.string": "^3.0.3"
   }
 }

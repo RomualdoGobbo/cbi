@@ -1,6 +1,9 @@
 'use strict';
 var expect = require('chai').expect;
-var Field = require('../lib/record').CBI.Field;
+/*eslint no-unused-expressions: 0*/
+
+console.log(require('../index'));
+var Field = require('../index').Field;
 
 describe('The field class', function(){
 
@@ -42,10 +45,10 @@ describe('The field class', function(){
         expect(f.length).to.equal(3);
     });
 
-    it('should generate content if not provideded', function(){
+    it('should not generate content if not provideded', function(){
 
         var f2 = new Field(3,4);
 
-        expect(f2.toString()).to.equal('  ');
+        expect(f2.toString()).to.equal(undefined);
     });
 });

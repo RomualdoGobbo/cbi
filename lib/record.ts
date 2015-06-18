@@ -2,358 +2,165 @@
 import assert = require('assert');
 import CBIStructs = require('./record_mapping');
 import s = require('underscore.string');
+
+//IDEA ramda è un pò più amichevole e fa più cose- magari sostituirlo?
 import lazy = require('lazy.js');
+import R = require('ramda');
 import fs = require('fs');
 import bl = require('byline');
 
+import f = require('./field');
+import Field = f.Field;
+
 /**
-*
-*  Writer and parser for CBI txt files
-*
+*  Record class - maps to a single line in a cbi file
 */
-export module CBI{
+export class Record {
 
-    /*
-     * Flow class - maps to a whole CBI file
+    private _fields : Array<Field>;
+    get fields(): Array<Field>{ return this._fields; }
+
+    //code è readonly
+    private _code : string;
+    get code(): string { return this._code;}
+
+    private recordStruct: CBIStructs.RecordStruct;
+
+    public static RAW_RECORD_LENGTH: number = 120;
+
+
+    /**
+     * Create a record istance.
      *
+     * @param recordType - can be a two letter record type identifier OR a full raw record line
+     * @param flowType -  the file type this record belongs to - used for validation
      */
-    export class Flow {
+    constructor(recordType: string, flowType: string) {
 
-        private _header: Record;
-        private _disposals: Array<Disposal>;
-        private _footer: Record;
-        public flowtype: string;
+        var code: string;
 
-        /**
-         * It's possibile to create a new empty instance and then fill in the fields,
-         * or to specify a record array, usually from a parsed file
-         *
-         * @param records array of records, including header and footer, or null
-         * @param flowtype the flow type
-         *
-         **/
+        switch(recordType.length) {
 
-        constructor( records: Array<Record>, flowtype: string, firstRecordId: string = '14'){
+          //only the type was specified
+          case 2 :
+              this._code = recordType;
+          break;
 
-            this.flowtype = flowtype;
+          //we are reading a raw record
+          case Record.RAW_RECORD_LENGTH :
+              this._code = recordType.substring(1,3);
+          break;
 
-            if(records === null){ return; }
-
-            if(records.length < 3){
-
-                throw new Error('Insufficent record length');
-            }
-
-            this._header = records.shift();
-            this._footer = records.pop();
-
-            this._disposals = records.reduce(
-
-                (dps: Array<Disposal>, rec: Record)=>{
-
-                    var currentDsp = dps[dps.length-1];
-
-                    //TODO devo validare il fatto che il primo record che becco
-                    //ha il firstRecordId
-
-                    // New disp starting
-                    if(rec.getField('tipo_record') === firstRecordId ){
-
-                        currentDsp = new Disposal();
-                        dps.push(currentDsp);
-                    }
-
-                    //questo si verifica se il primo record non è un tipo_record
-                    assert(currentDsp instanceof Disposal, 'Wrong file format - first record did not have correct tipo_record ' + currentDsp);
-
-                    currentDsp.appendRecord(rec);
-
-                    return dps;
-                },
-
-                []
-            )
+          default :
+              throw new Error('Invalid record length ' + recordType.length + ' - ' + recordType);
+          break;
         }
 
-        /**
-         *  Convenience static method to create an instance from a file
-         *
-         *  @param filepath path to a cbi file
-         *  @param flowtype the flow type
-         *  @param onready nodeback style completion callback
-         *
-         * */
+        //validate flow type
+        var flowStruct: CBIStructs.FlowStruct = CBIStructs.MAPPINGS[flowType];
 
-        public static fromFile(
+        if( flowStruct === undefined)
+            throw new Error('Unknown flow type '+ flowType);
 
-            filepath: string,
-            flowtype: string,
-            onready: (err: Error, flow: Flow)=> void
-            )
-            : void {
+        this.recordStruct  = flowStruct[this.code];
+        if( this.recordStruct === undefined )
+            throw new Error('Unknown record type '+ this.code);
 
 
-            var stream: bl.LineStream = bl.createStream(
+        //create record
+        var fieldLength = 0;
+        this._fields = this.recordStruct.map( (struct: CBIStructs.FieldStruct)=> {
 
-                fs.createReadStream(filepath)
-            );
+          var content: string = undefined;
 
-            var records: Array<Record> = [];
+          //reading from raw - get content
+          if(recordType.length === Record.RAW_RECORD_LENGTH){
 
-            stream.on('readable', function() {
+            content = recordType.substring(struct[0]-1, struct[1]);
 
-                var line: Buffer;
+            var isValid = struct[3];
 
-                while (null !== (line = stream.read())) {
+            assert( isValid(content),
+            'Error in record '+ this._code +
+            ', Field ' + struct[2]+ ' has invalid value "'+content+'" ');
+          }
 
-                    records.push( new Record(line.toString(), flowtype));
-                }
-            });
+          else if(struct[2] === 'tipo_record'){
+            content = this.code;
+          }
 
-            stream.on('error', (err: Error)=> {onready( err, null); } );
-            stream.on('end', ()=>{ onready(null, new Flow(records, flowtype)) });
-        };
+          var newField = new Field(
+              struct[0],  //from
+              struct[1],  //to
+              struct[2],  //name
+              content
+          );
 
-        /**
-        * Convenience method to create a file from an instance
-        *
-        * @param filepath path to a cbi file
-        * 
-        */
+          fieldLength += newField.length;
+          return newField;
+        });
 
-        public toFile(filepath: string, done: (err: Error)=>void){
-
-            var writeStream = fs.createWriteStream(filepath);
-            writeStream.write(this._header.toString()+'\r\n');
-
-            this._disposals.forEach((disposal : Disposal)=>{
-
-                writeStream.write(disposal.toString());
-            });
-
-            writeStream.write(this._footer.toString()+'\r\n');
-            writeStream.end();
-
-            writeStream.on('error', function(err: Error){
-                return done(err);
-            });
-            writeStream.on('finish', function(){
-                return done(null);
-            });
-        };
-
-    }
-
-    export class Disposal {
-
-       private records: Array<Record>;
-
-       constructor(){
-
-           this.records = [];
-       }
-
-       //TODO può esserci solo un record con un dato codice all'interno di un disposal (distinta?)
-       public getRecord(code: string): Record {
-
-            assert(typeof code === 'string', 'Record type must be a string');
-
-            return lazy(this.records).find(
-                    (candidate: Record) => { return candidate.code === code} );
-       }
-
-       public appendRecord(record: Record){
-
-            assert(record instanceof Record, 'This is not a Record');
-            this.records.push(record);
-       }
-
-       public toString(): string{
-
-            return this.records.reduce(
-                (out: string, record: Record)=> { return out+=record.toString()+'\r\n' },
-                ''
-            );
-        }
+        assert(fieldLength === Record.RAW_RECORD_LENGTH,
+          'Unexpected record length: '+ fieldLength + '\n'+
+          'Raw record: ' + this + '\n' +
+          'Definition: '+this.recordStruct);
     }
 
     /**
-     *  Record class - maps to a single line in a cbi file
+     * Gets a field by name. Two fields with the same name cannot exist in the same record
+     *
+     * @param name : the field name
      */
-    export class Record {
+    public getField(name: string): string {
 
-        private _fields : Array<Field>;
-        get fields(): Array<Field>{ return this._fields; }
+      return this._getField(name).content;
+    }
 
-        //usata solo internamente per ottimizzare la chiamate a lazy.js
-        private _lazyFields: LazyJS.ArrayLikeSequence<Field> ;
+    private _getField(name: string): Field {
 
-        private _code : string;
-        get code(): string { return this._code;}
+      var field = R.find(R.propEq('name', name))(this.fields);
 
-        private recordStruct: CBIStructs.RecordStruct;
+      if(!field) {
 
-        public static RAW_RECORD_LENGTH: number = 120;
-
-        /**
-         * Create a record istance.
-         *
-         * @param recordType - can be a two letter record type identifier OR a full raw record line
-         * @param flowType -  the file type this record belongs to - used for validation
-         */
-        constructor(recordType: string, flowType: string) {
-
-            var code: string;
-
-            switch(recordType.length) {
-
-                //only the type was specified
-                case 2 :
-                    this._code = recordType;
-                break;
-
-                //we are reading a raw record
-                case Record.RAW_RECORD_LENGTH :
-                    this._code = recordType.substring(1,3);
-                break;
-
-                default :
-                    throw new Error('Invalid record length ' + recordType.length + ' - ' + recordType);
-                break;
-            }
-
-
-            //validate flow type
-            var flowStruct: CBIStructs.FlowStruct = CBIStructs.MAPPINGS[flowType];
-            if( flowStruct === undefined)
-                throw new Error('Unknown flow type '+ flowType);
-
-            //check if record type exists
-
-            // if(this.code === '51')
-            //     console.log('aaaa',flowStruct[this.code]);
-
-            this.recordStruct  = flowStruct[this.code];
-            if( this.recordStruct === undefined )
-                throw new Error('Unknown record type '+ this.code);
-
-            //create record
-            this._fields = this.recordStruct.map( (struct: CBIStructs.FieldStruct)=> {
-
-                var content: string = undefined;
-
-                //reading from raw - get content
-                if(recordType.length === Record.RAW_RECORD_LENGTH){
-
-                    content = recordType.substring(struct[0]-1, struct[1]);
-                }
-
-                else if(struct[2] === 'tipo_record'){
-
-                    content = this.code;
-                }
-
-                return new Field(
-                    struct[0],  //from
-                    struct[1],  //to
-                    struct[2],  //name
-                    content
-                );
-            });
-
-            this._lazyFields = lazy(this._fields);
-        }
-
-        /**
-         * Gets a field by name. Two fields with the same name cannot exist in the same record
-         *
-         * @param name : the field name
-         */
-        public getField(name: string): string {
-
-            return this._lazyFields.find(
-                    (candidate: Field) => { return candidate.name === name} ).toString();
-        }
-
-        /**
-         * Sets and validate a field
-         * @param name : the field name
-         * @param value : the field value
-         */
-        public setField(name: string, value : string): void {
-
-            var field: Field = this._lazyFields.find(
-                    (candidate: Field) => { return candidate.name === name} );
-
-            if(!field) {
-
-                throw new Error('This record cannot contain a field with name '+name);
-            }
-
-            field.content = value;
-        }
-
-        /**
-         *  Renders a string representation of the record
-         */
-        public toString(): string{
-
-            return this._fields.reduce(
-                (out: string, field: Field)=> { return out+=field.toString() },
-                ''
-            );
-        }
+        throw new Error('This record cannot contain a field with name '+name);
+      }
+      return field;
     }
 
     /**
-     * This class represents a field in a single record
+     * Sets and validate a field
+     * @param name : the field name
+     * @param value : the field value
      */
-    export class Field {
+    public setField(name: string, value : string): void {
 
-        get length(): number {
-            return this.to - this.from + 1;
-        }
+      var field = this._getField(name);
+      var fieldDef = R.find(R.propEq(2, name))(this.recordStruct);
+      var isValid = fieldDef[3];
 
-        get name(): string { return this._name; }
+      assert( isValid(value),
+        'Error in record '+ this._code +
+        ', Field ' + name + ' has invalid value "'+value+'" ')
+      //get the validator
 
-        private _content: string;
-
-        set content(content: string) {
-
-             assert(content.length === this.length, 'Invalid content length for '+this._name);
-             this._content = content;
-        }
-
-        get content() {
-
-             return this._content;
-        }
-
-        constructor(
-
-            private from : number,
-            private to : number,
-            private _name : string,
-            content? : string) {
-
-            assert(this.validatePosition(from),'Invalid from param');
-            assert(this.validatePosition(to), 'Invalid to param');
-
-            if(this.length <= 0){
-
-                throw new Error('Invalid from/to params');
-            }
-
-            this._content = content ? content : s.repeat(' ', this.length);
-
-            assert(this._content.length === this.length);
-        }
-
-        private validatePosition(val : number):Boolean{
-
-            return (typeof val === 'number') && (val % 1 === 0) && ( val>0 );
-        }
-
-        public toString():string { return this.content; }
+      field.content = value;
     }
+
+    /**
+     *  Renders a string representation of the record
+     */
+    public toString(): string{
+
+      var string = this._fields.reduce(
+        (out: string, field: Field)=> {
+
+          return out+=field.toString();
+        },
+        ''
+      );
+
+      return string;
+    }
+
+
 }
