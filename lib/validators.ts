@@ -12,7 +12,7 @@ export function blank(string: string): boolean{
 }
 
 //i will also decompose you but I have no time
-var doesMatch = R.curry(function(regex, string) {
+var doesMatch = R.curry((regex, string)=>{
   return !! string.match(regex);
 });
 
@@ -35,7 +35,7 @@ export var length = hasLength;
 
 var _date = doesMatch();
 
-export var date = function(string){
+export var date = (string)=>{
   var components = string.match(/^([0-3][1-9])([0,1][0-9])([0-9]{2})$/);
   if(components === null || components.length !== 4){
 
@@ -61,7 +61,7 @@ export var date = function(string){
   return (d.getDate() === day)
 }
 
-var _enum = R.curry(function(arr, str){
+var _enum = R.curry((arr, str)=>{
   return arr.indexOf(str) !== -1;
 });
 

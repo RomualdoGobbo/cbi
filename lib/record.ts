@@ -3,21 +3,22 @@ import assert = require('assert');
 import CBIStructs = require('./record_mapping');
 import s = require('underscore.string');
 
-//IDEA ramda è un pò più amichevole e fa più cose- magari sostituirlo?
 import lazy = require('lazy.js');
 import R = require('ramda');
 import fs = require('fs');
 import bl = require('byline');
 
 import f = require('./field');
-import Field = f.Field;
+
+export type Field = { name : string, value: string};
 
 /**
 *  Record class - maps to a single line in a cbi file
 */
 export class Record {
 
-    private _fields : Array<Field>;
+    //readonly
+    private _fields: Array<Field> ;
     get fields(): Array<Field>{ return this._fields; }
 
     //code è readonly
@@ -27,7 +28,6 @@ export class Record {
     private recordStruct: CBIStructs.RecordStruct;
 
     public static RAW_RECORD_LENGTH: number = 120;
-
 
     /**
      * Create a record istance.
@@ -69,13 +69,23 @@ export class Record {
 
         //create record
         var fieldLength = 0;
-        this._fields = this.recordStruct.map( (struct: CBIStructs.FieldStruct)=> {
+        this._fields =
+        this.recordStruct.map( (struct: CBIStructs.FieldStruct)=> {
 
           var content: string = undefined;
 
-          //reading from raw - get content
+          var length = struct[1] - struct[0] + 1;
+          // inizializza a stringa vuota il campo
+          var field = {
+            name : struct[2],
+            value : ''
+          };
+
+          field[struct[2]] = '';
+
           if(recordType.length === Record.RAW_RECORD_LENGTH){
 
+            //per forza la lunghezza è giusta qua
             content = recordType.substring(struct[0]-1, struct[1]);
 
             var isValid = struct[3];
@@ -83,21 +93,12 @@ export class Record {
             assert( isValid(content),
             'Error in record '+ this._code +
             ', Field ' + struct[2]+ ' has invalid value "'+content+'" ');
+
+            field.value = content;
           }
 
-          else if(struct[2] === 'tipo_record'){
-            content = this.code;
-          }
-
-          var newField = new Field(
-              struct[0],  //from
-              struct[1],  //to
-              struct[2],  //name
-              content
-          );
-
-          fieldLength += newField.length;
-          return newField;
+          fieldLength += length;
+          return field;
         });
 
         assert(fieldLength === Record.RAW_RECORD_LENGTH,
@@ -113,7 +114,7 @@ export class Record {
      */
     public getField(name: string): string {
 
-      return this._getField(name).content;
+      return this._getField(name).value;
     }
 
     private _getField(name: string): Field {
@@ -135,15 +136,20 @@ export class Record {
     public setField(name: string, value : string): void {
 
       var field = this._getField(name);
-      var fieldDef = R.find(R.propEq(2, name))(this.recordStruct);
-      var isValid = fieldDef[3];
+      var struct = R.find(R.propEq(2, name))(this.recordStruct);
+      var isValid = struct[3];
+
+      //validate string length before everything else
+      var length = struct[1] - struct[0] + 1;
+
+      assert(value.length === length, 'Invalid content length for '+ name);
 
       assert( isValid(value),
         'Error in record '+ this._code +
         ', Field ' + name + ' has invalid value "'+value+'" ')
       //get the validator
 
-      field.content = value;
+      field.value = value;
     }
 
     /**
@@ -154,7 +160,7 @@ export class Record {
       var string = this._fields.reduce(
         (out: string, field: Field)=> {
 
-          return out+=field.toString();
+          return out+=field.value;
         },
         ''
       );

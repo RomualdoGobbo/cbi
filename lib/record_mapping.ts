@@ -21,7 +21,7 @@ var any = R.anyPass; //union type
 var IM : RecordStruct = [
 
     [1, 1, "filler1", V.blank ],
-    [2, 3, "tipo_record", V.alphanumeric ],
+    [2, 3, "tipo_record", R.equals('IM') ],
     [4, 8, "mittente", V.SIA ],
     [9, 13, "ricevente", V.ABI ],
     [14, 19, "data_creazione", V.date],
