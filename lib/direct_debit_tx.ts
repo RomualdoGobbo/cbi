@@ -21,8 +21,6 @@ const directDebitTxDef = [
     prop: 'instructedAmount',
 
     get: (el, instance) => {
-      //IDEA: implementare un campo "attributes" che vada negli attributi del nodo
-      //e funzioni più o meno come children?
       instance.currency = el.attr('Ccy').value();
       return parseInt(el.text(),10)
     },

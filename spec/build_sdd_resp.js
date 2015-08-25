@@ -25,6 +25,7 @@ function getTestMessage() {
     txInfAndStatus.debitorIBAN = 'IT60X0542811101000000123456';
     txInfAndStatus.creditorName = '123';
     txInfAndStatus.creditorIBAN = 'IT60X0542811101000000123456';
+    txInfAndStatus.categoryPurpose = 'CASH';
     var originalInfo = new sdd_status_report_1.OriginalPaymentInformationAndStatus();
     originalInfo.originalPaymentInformationId = '123';
     originalInfo.transactionInformationAndStatuses = [txInfAndStatus];

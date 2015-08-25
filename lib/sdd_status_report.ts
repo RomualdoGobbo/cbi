@@ -211,9 +211,17 @@ const transactionInformationAndStatusDef = [
     {
       tag: 'Amt',
 
-      children: [
-        {tag: 'InstdAmt', prop: 'amount', type: 'number'}
-      ],
+      children: [{
+        tag: 'InstdAmt',
+        get: (el, instance) => {
+          instance.currency = el.attr('Ccy').value();
+          return parseInt(el.text(),10)
+        },
+        set: (val, el, instance) => {
+          el.attr({ Ccy: instance.currency });
+          el.text(instance.amount);
+        }
+      }],
     },
 
     {
@@ -238,13 +246,9 @@ const transactionInformationAndStatusDef = [
     {
       tag: 'PmtTpInf',
       children: [
-        { tag: 'SvcLvl', children:[
-          { tag: 'Cd', prop: 'serviceLevel' }
+        { tag: 'CtgyPurp', children:[
+          { tag: 'Cd', prop: 'categoryPurpose'}
         ]},
-        { tag: 'LclInstrm', children:[
-          { tag: 'Cd', prop: 'localInstrument' }
-        ]},
-        { tag:'SeqTp', prop: 'sequenceType' },
       ]
     },
 
@@ -263,27 +267,27 @@ const transactionInformationAndStatusDef = [
       tag: 'DbtrAcct',
       children: [
         {
-            tag: 'Id',
-            children: [
-                { tag: 'IBAN', prop: 'originalDebitorIBAN' }
-            ]
+          tag: 'Id',
+          children: [
+            { tag: 'IBAN', prop: 'originalDebitorIBAN' }
+          ]
         }
       ]
     },
     {
-        tag: 'Cdtr',
-        children: [
-            { tag: 'Nm', prop: 'originalCreditorName' }
-        ]
+      tag: 'Cdtr',
+      children: [
+        { tag: 'Nm', prop: 'originalCreditorName' }
+      ]
     },
     {
       tag: 'CdtrAcct',
       children: [
-          { tag: 'Id',
-              children: [
-                  { tag: 'IBAN', prop: 'originalCreditorIBAN' }
-              ]
-          }
+        { tag: 'Id',
+          children: [
+            { tag: 'IBAN', prop: 'originalCreditorIBAN' }
+          ]
+        }
       ]
     },
 
@@ -317,6 +321,7 @@ export class TransactionInformationAndStatus extends ElementWrapper {
   public debitorIBAN: string;
   public creditorName: string;
   public creditorIBAN: string;
+  public categoryPurpose: string;
 
   public validate(){
     return true;

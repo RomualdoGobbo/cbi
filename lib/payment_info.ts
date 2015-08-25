@@ -21,6 +21,7 @@ const paymentInfoDef = [
         { tag: 'Cd', prop: 'localInstrument' }
       ]},
       { tag:'SeqTp', prop: 'sequenceType' },
+
     ]
   },
   {

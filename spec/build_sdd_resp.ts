@@ -38,6 +38,7 @@ export function getTestMessage(){
   txInfAndStatus.debitorIBAN = 'IT60X0542811101000000123456';
   txInfAndStatus.creditorName = '123';
   txInfAndStatus.creditorIBAN = 'IT60X0542811101000000123456';
+  txInfAndStatus.categoryPurpose = 'CASH';
 
   const originalInfo = new OriginalPaymentInformationAndStatus();
   originalInfo.originalPaymentInformationId = '123';

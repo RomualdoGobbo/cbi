@@ -21,18 +21,21 @@ export class XSDError extends Error {
 
 export interface ElementDef{
 
-  tag: string;
+  tag?: string;
+  attr?: string;
+
   prop?: string;
-  children?: Array<ElementDef>
+
+  children?: Array<ElementDef>;
+  attributes? :Array<ElementDef>;
 
   //TODO remove those once possible
   set?: (el:libxml.Element, prop: any, instance?: ElementWrapper)=>void;
   get?: (el:libxml.Element, instance?: ElementWrapper)=>any;
 
-  //TODO merge those two suckers
+  //TODO merge those three suckers
   type?: string,
   wrapper?: typeof ElementWrapper,
-
   isArray?: boolean,
 }
 
